@@ -26,10 +26,39 @@ textarea, input[type="text"], .stTextArea textarea, .stTextInput input {
     font-family: "Tahoma", "Arial", sans-serif !important;
     font-size: 18px !important;
 }
+/* تقليل المسافات العمودية بين العناصر */
+.stTextInput, .stTextArea, .stSelectbox, .stForm, .stCheckbox, .stButton, .stDownloadButton, .stMetric, .stForm form, .stForm .stFormSubmitButton {
+    margin-bottom: 2px !important;
+    padding-bottom: 0px !important;
+    padding-top: 0px !important;
+}
+.stTextInput > div, .stTextArea > div, .stSelectbox > div, .stForm > div, .stCheckbox > div, .stButton > div, .stDownloadButton > div, .stMetric > div {
+    margin-bottom: 2px !important;
+    padding-bottom: 0px !important;
+    padding-top: 0px !important;
+}
+.stTextInput input, .stTextArea textarea {
+    margin-bottom: 0px !important;
+    padding-bottom: 3px !important;
+    padding-top: 3px !important;
+}
 [data-testid="stTextArea"] textarea,
 [data-testid="stTextInput"] input {
     direction: rtl !important;
     text-align: right !important;
+}
+.stForm form {
+    gap: 2px !important;
+}
+.stForm [data-testid="stFormSubmitButton"] {
+    margin-top: 6px !important;
+    margin-bottom: 0px !important;
+}
+label, .stSelectbox label, .stTextInput label, .stTextArea label {
+    margin-bottom: 2px !important;
+}
+.markdown-text-container {
+    margin-bottom: 4px !important;
 }
 mark {
     background: #ff9800 !important;
@@ -373,22 +402,22 @@ def run_main_app():
             return
         st.markdown("""
             <div style="direction: rtl; text-align: right;">
-            <h3 style="display: flex; align-items: center; gap: 10px;">🔎 نموذج البحث</h3>
+            <h3 style="display: flex; align-items: center; gap: 10px; margin-bottom: 2px;">🔎 نموذج البحث</h3>
             </div>
         """, unsafe_allow_html=True)
         with st.form("main_search_form"):
-            st.markdown('<div style="direction: rtl; text-align: right;">اختر قانونًا للبحث:</div>', unsafe_allow_html=True)
+            st.markdown('<div style="direction: rtl; text-align: right; margin-bottom: 2px;">اختر قانونًا للبحث:</div>', unsafe_allow_html=True)
             selected_file_form = st.selectbox("", ["الكل"] + files, key="main_file_select", label_visibility="collapsed")
-            st.markdown('<div style="direction: rtl; text-align: right;">📌 اكتب كلمة أو جملة للبحث عنها:</div>', unsafe_allow_html=True)
-            st.markdown('<div dir="rtl">', unsafe_allow_html=True)
+            st.markdown('<div style="direction: rtl; text-align: right; margin-bottom: 2px;">📌 اكتب كلمة أو جملة للبحث عنها:</div>', unsafe_allow_html=True)
+            st.markdown('<div dir="rtl" style="margin-bottom:2px;">', unsafe_allow_html=True)
             keywords_form = st.text_area(
                 "",
                 key="main_keywords_input",
                 help="أدخل الكلمات التي تريد البحث عنها، وافصل بينها بفاصلة إذا كانت أكثر من كلمة.",
             )
             st.markdown('</div>', unsafe_allow_html=True)
-            st.markdown('<div style="direction: rtl; text-align: right;">أو أبحث برقم المادة:</div>', unsafe_allow_html=True)
-            st.markdown('<div dir="rtl">', unsafe_allow_html=True)
+            st.markdown('<div style="direction: rtl; text-align: right; margin-bottom: 2px;">أو أبحث برقم المادة:</div>', unsafe_allow_html=True)
+            st.markdown('<div dir="rtl" style="margin-bottom:2px;">', unsafe_allow_html=True)
             article_number_input = st.text_input(
                 "",
                 key="article_number_input",
@@ -490,7 +519,7 @@ def run_main_app():
             if not results:
                 st.info("لم يتم العثور على نتائج مطابقة للبحث.")
         if st.session_state.get("search_done", False) and st.session_state.results:
-            st.markdown("<h2 style='text-align: center; color: #388E3C;'>نتائج البحث في القوانين 📚</h2>", unsafe_allow_html=True)
+            st.markdown("<h2 style='text-align: center; color: #388E3C; margin-bottom: 2px;'>نتائج البحث في القوانين 📚</h2>", unsafe_allow_html=True)
             st.markdown("---")
         if st.session_state.get("search_done", False):
             results = st.session_state.results
