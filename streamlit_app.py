@@ -379,7 +379,25 @@ def run_main_app():
         with st.form("main_search_form"):
             st.markdown('<div style="direction: rtl; text-align: right;">اختر قانونًا للبحث:</div>', unsafe_allow_html=True)
             selected_file_form = st.selectbox("", ["الكل"] + files, key="main_file_select", label_visibility="collapsed")
-            st.markdown('<div style="direction: rtl; text-align: right;">📌 اكتب كلمة أو جملة للبحث عنها:</div>', unsafe_allow_html=True)
+            
+st.markdown('<div style="direction: rtl; text-align: right;">📌 اكتب كلمة أو جملة للبحث عنها:</div>', unsafe_allow_html=True)
+
+# أيقونة كيبورد تظهر لتفعيل الحقل
+keyboard_toggle = st.button("🧠 اضغط لكتابة كلمات البحث", key="keyboard_toggle")
+
+# حالة ظهور الحقل
+if keyboard_toggle or st.session_state.get("show_input", False):
+    st.session_state.show_input = True
+    st.markdown('<div dir="rtl">', unsafe_allow_html=True)
+    keywords_form = st.text_area(
+        "",
+        key="main_keywords_input",
+        help="أدخل الكلمات التي تريد البحث عنها، وافصل بينها بفاصلة إذا كانت أكثر من كلمة.",
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
+else:
+    keywords_form = ""
+
             st.markdown('<div dir="rtl">', unsafe_allow_html=True)
             keywords_form = st.text_area(
                 "",
