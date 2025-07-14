@@ -18,13 +18,6 @@ st.set_page_config(
 if "night_mode" not in st.session_state:
     st.session_state.night_mode = False
 
-# ----------------- للتعديلات الجديدة -----------------
-if "show_keyboard_search" not in st.session_state:
-    st.session_state.show_keyboard_search = False
-if "main_keywords_input" not in st.session_state:
-    st.session_state.main_keywords_input = ""
-# ----------------------------------------------------
-
 st.markdown("""
 <style>
 textarea, input[type="text"], .stTextArea textarea, .stTextInput input {
@@ -45,28 +38,6 @@ mark {
 mark.mark-soft {
     background: #ffd600 !important;
     color: #000 !important;
-}
-/* زر × لمربع الكلمات المفتاحية */
-.clear-btn-keywords {
-    position: absolute;
-    left: 5px;
-    top: 8px;
-    background: #ff5252;
-    color: #fff;
-    border: none;
-    border-radius: 50%;
-    width: 26px;
-    height: 26px;
-    font-size: 18px;
-    line-height: 0;
-    cursor: pointer;
-    z-index: 2;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.keywords-area-wrapper {
-    position: relative;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -406,93 +377,16 @@ def run_main_app():
             </div>
         """, unsafe_allow_html=True)
         with st.form("main_search_form"):
-            # ---------------------- اختيار القانون مع ايقونة كيبورد ----------------------
             st.markdown('<div style="direction: rtl; text-align: right;">اختر قانونًا للبحث:</div>', unsafe_allow_html=True)
-            law_sel_row = st.columns([9,1])
-            with law_sel_row[0]:
-                # اجعل حقل اختيار القانون غير قابل للبحث (لن يظهر الكيبورد في الجوال غالبا)
-                selected_file_form = st.selectbox(
-                    "", ["الكل"] + files,
-                    key="main_file_select",
-                    label_visibility="collapsed"
-                )
-            with law_sel_row[1]:
-                # أيقونة الكيبورد
-                st.markdown(
-                    """
-                    <div style="margin-top: 6px;">
-                        <button id="keyboard_icon_law" style="background: none; border: none; cursor: pointer;" title="بحث عن قانون بواسطة الكيبورد">
-                            <img src="https://img.icons8.com/ios-filled/24/000000/keyboard.png"/>
-                        </button>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-                components.html(
-                    """
-                    <script>
-                    const btn = window.parent.document.getElementById("keyboard_icon_law");
-                    if(btn){
-                        btn.onclick = function(){
-                            window.parent.postMessage({type:"show_keyboard_search"}, "*");
-                        };
-                    }
-                    </script>
-                    """,
-                    height=0
-                )
-            # حقل البحث عن قانون بواسطة الكيبورد (مخفي إلا إذا اختاره المستخدم)
-            if st.session_state.get("show_keyboard_search", False):
-                search_val = st.text_input("ابحث عن قانون", key="law_keyboard_search")
-                if search_val:
-                    filtered = [f for f in files if search_val.strip() in f]
-                    if filtered:
-                        selected_file_form = st.selectbox(
-                            "القوانين المطابقة:",
-                            filtered,
-                            key="main_file_select_search"
-                        )
-            # الاستجابة لرسالة postMessage من الـ JS
-            components.html(
-                """
-                <script>
-                window.addEventListener("message", function(e){
-                  if(e.data && e.data.type === "show_keyboard_search"){
-                    window.parent.streamlitSend({type:"streamlit:setComponentValue", key:"show_keyboard_search", value:true});
-                  }
-                });
-                </script>
-                """,
-                height=0
-            )
-            # ---------------------- نهاية اختيار القانون مع ايقونة كيبورد ----------------------
-
+            selected_file_form = st.selectbox("", ["الكل"] + files, key="main_file_select", label_visibility="collapsed")
             st.markdown('<div style="direction: rtl; text-align: right;">📌 اكتب كلمة أو جملة للبحث عنها:</div>', unsafe_allow_html=True)
-            # ------------ مربع الكلمات المفتاحية مع زر × -------------
-            st.markdown('<div class="keywords-area-wrapper">', unsafe_allow_html=True)
+            st.markdown('<div dir="rtl">', unsafe_allow_html=True)
             keywords_form = st.text_area(
                 "",
                 key="main_keywords_input",
-                value=st.session_state.main_keywords_input,
                 help="أدخل الكلمات التي تريد البحث عنها، وافصل بينها بفاصلة إذا كانت أكثر من كلمة.",
             )
-            st.session_state.main_keywords_input = keywords_form
-            # زر × لمسح المربع
-            components.html(
-                """
-                <script>
-                function clear_keywords_area(){
-                    const txt = window.parent.document.querySelector('textarea[data-testid="stTextArea-text-area"]');
-                    if(txt){ txt.value=""; txt.dispatchEvent(new Event('input', { bubbles: true })); }
-                }
-                </script>
-                <button class="clear-btn-keywords" onclick="clear_keywords_area()" type="button" title="مسح الكلمات">×</button>
-                """,
-                height=36
-            )
             st.markdown('</div>', unsafe_allow_html=True)
-            # ------------ نهاية مربع الكلمات المفتاحية -------------
-
             st.markdown('<div style="direction: rtl; text-align: right;">أو أبحث برقم المادة:</div>', unsafe_allow_html=True)
             st.markdown('<div dir="rtl">', unsafe_allow_html=True)
             article_number_input = st.text_input(
