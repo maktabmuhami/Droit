@@ -12,6 +12,12 @@ import time
 import html
 import csv
 from io import BytesIO
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
+from reportlab.lib.enums import TA_RIGHT
+from reportlab.lib.styles import ParagraphStyle
 
 st.set_page_config(
     page_title="القوانين اليمنية بآخر تعديلاتها حتى عام 2025م",
