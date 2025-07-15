@@ -13,10 +13,6 @@ import html
 import csv
 from io import BytesIO
 
-# PDF export imports
-import pdfkit
-import tempfile
-
 st.set_page_config(
     page_title="القوانين اليمنية بآخر تعديلاتها حتى عام 2025م",
     layout="wide",
@@ -154,25 +150,24 @@ def set_paragraph_rtl(paragraph):
     # Also set alignment to right
     paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
-def strip_article_brackets(text):
-    # يحذف الأقواس حول رقم المادة، ليكون "مادة 20" وليس "مادة (20)"
-    # matches "مادة (20):" or "مادة(20):" or "مادة ( 20 ) :"
-    return re.sub(r'مادة\s*\(\s*(\d+)\s*\)', r'مادة \1', text)
-
 def export_results_to_word(results, filename="نتائج_البحث.docx"):
     document = Document()
+    
+    # Set normal style for the document
     style = document.styles['Normal']
     font = style.font
     font.name = 'Arial'
     font.size = Pt(16)
     style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
+    # Set margins: 2.54cm left/right, 2.54cm top/bottom (default), but you can change as needed
     section = document.sections[0]
     section.top_margin = Cm(2.54)
     section.bottom_margin = Cm(2.54)
     section.left_margin = Cm(2.54)
     section.right_margin = Cm(2.54)
 
+    # Add heading
     heading = document.add_heading('نتائج البحث في القوانين اليمنية', level=1)
     heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
     set_paragraph_rtl(heading)
@@ -182,20 +177,23 @@ def export_results_to_word(results, filename="نتائج_البحث.docx"):
         set_paragraph_rtl(p)
     else:
         for i, r in enumerate(results):
-            # Remove brackets from article number
-            article_num = re.sub(r'[\(\)]', '', str(r['num']))
-            result_heading = document.add_heading(f"القانون: {r['law']} - مادة {article_num}", level=2)
+            # Add law/article heading
+            result_heading = document.add_heading(f"القانون: {r['law']} - المادة: {r['num']}", level=2)
             result_heading.alignment = WD_ALIGN_PARAGRAPH.RIGHT
             set_paragraph_rtl(result_heading)
+            # Add result text, justified, size 16, right-to-left
             para = document.add_paragraph(r['plain'])
-            para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
             set_paragraph_rtl(para)
+            # Set font for every run
             for run in para.runs:
                 run.font.name = 'Arial'
                 run._element.rPr.rFonts.set(qn('w:eastAsia'), 'Arial')
                 run.font.size = Pt(16)
+            # Add 1cm spacing after each result except last
             if i < len(results) - 1:
                 para.space_after = Pt(0)
+                # Add an empty paragraph with 1cm spacing
                 spacer = document.add_paragraph()
                 spacer.paragraph_format.space_after = Cm(1)
                 set_paragraph_rtl(spacer)
@@ -203,43 +201,6 @@ def export_results_to_word(results, filename="نتائج_البحث.docx"):
     document.save(buffer)
     buffer.seek(0)
     return buffer.getvalue()
-
-def export_results_to_pdf(results, filename="نتائج_البحث.pdf"):
-    # Generate HTML string with RTL direction and no parentheses
-    html_content = """
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <style>
-            body { direction: rtl; font-family: 'Arial', 'Tahoma', sans-serif; font-size: 17px; }
-            h1, h2 { text-align: right; }
-            .result-box { border: 1px solid #d1d1d1; background: #f9f9f9; border-radius: 8px; margin-bottom: 20px; padding: 16px;}
-            .law-header { color: #1976d2; font-size: 18px; margin-bottom: 8px;}
-        </style>
-    </head>
-    <body>
-        <h1>نتائج البحث في القوانين اليمنية</h1>
-    """
-    if not results:
-        html_content += "<p>لم يتم العثور على نتائج للكلمات المفتاحية المحددة.</p>"
-    else:
-        for r in results:
-            article_num = re.sub(r'[\(\)]', '', str(r['num']))
-            html_content += f"""
-            <div class="result-box">
-                <div class="law-header">القانون: {html.escape(r['law'])} - مادة {html.escape(article_num)}</div>
-                <div style="white-space: pre-line; text-align: right;">{html.escape(r['plain'])}</div>
-            </div>
-            """
-    html_content += "</body></html>"
-
-    # Use pdfkit to render the HTML to PDF
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
-        pdfkit.from_string(html_content, tmp_pdf.name)
-        tmp_pdf.seek(0)
-        pdf_bytes = tmp_pdf.read()
-    os.unlink(tmp_pdf.name)
-    return pdf_bytes
 
 def normalize_arabic_numbers(text):
     arabic_to_english = str.maketrans('٠١٢٣٤٥٦٧٨٩', '0123456789')
@@ -267,8 +228,6 @@ def render_law_file_viewer(files):
         for para in doc.paragraphs:
             txt = para.text.strip()
             if txt:
-                # Remove article brackets in the full law view as well
-                txt = strip_article_brackets(txt)
                 law_text += txt + "\n\n"
         st.markdown("""
         <style>
@@ -281,6 +240,21 @@ def render_law_file_viewer(files):
             font-family: "Tahoma", "Arial", sans-serif !important;
             font-weight: bold !important;
             letter-spacing: 0.3px;
+        }
+        textarea::-webkit-textfield-decoration-container {
+            display: none !important;
+        }
+        textarea::-webkit-scrollbar-button,
+        textarea::-webkit-scrollbar-corner {
+            display: none !important;
+        }
+        textarea::selection { background: #b3d7ff; }
+        textarea[readonly]::-moz-selection,
+        textarea[disabled]::-moz-selection {
+            background: #b3d7ff;
+        }
+        textarea[disabled]::selection {
+            background: #b3d7ff;
         }
         </style>
         """, unsafe_allow_html=True)
@@ -307,7 +281,139 @@ def run_main_app():
             )
     tabs = st.tabs(["🔎 البحث في القوانين", "📄 عرض القانون الكامل"])
     with tabs[0]:
-        # ... (Night mode styles etc remain unchanged)
+        if st.session_state.night_mode:
+            st.markdown("""
+            <style>
+            body, .stApp {
+                background-color: #181a1b !important;
+                color: #f1f1f1 !important;
+            }
+            .stTextInput input, .stTextArea textarea, textarea, input[type="text"] {
+                background-color: #222426 !important;
+                color: #f1f1f1 !important;
+            }
+            .stButton button, .stDownloadButton button {
+                background: linear-gradient(90deg, #333 0%, #222 100%) !important;
+                color: #f1f1f1 !important;
+                border: 1px solid #444 !important;
+            }
+            .stExpanderHeader, .stForm, .stMetric {
+                background-color: #232526 !important;
+                color: #f1f1f1 !important;
+            }
+            mark {
+                background: #ff9800 !important;
+                color: #fff !important;
+            }
+            mark.mark-soft {
+                background: #ffd600 !important;
+                color: #000 !important;
+            }
+            .copy-material-btn {
+                background: linear-gradient(90deg, #384e5a 0%, #213b4b 100%) !important;
+                color: #eee !important;
+            }
+            .copy-material-btn:hover {
+                background: linear-gradient(90deg, #213b4b 0%, #384e5a 100%) !important;
+            }
+            .result-box-night {
+                background-color: #232526 !important;
+                color: #fafafa !important;
+                padding: 20px;
+                margin-bottom: 10px;
+                width: 100%;
+                max-width: 100%;
+                border-radius: 10px;
+                border: 1px solid #333;
+                direction: rtl;
+                text-align: right;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <style>
+            body, .stApp {
+                background-color: #fff !important;
+                color: #232323 !important;
+            }
+            mark {
+                background: #ff9800 !important;
+                color: #fff !important;
+            }
+            mark.mark-soft {
+                background: #ffd600 !important;
+                color: #000 !important;
+            }
+            .result-box-night {
+                background-color: #f1f8e9 !important;
+                color: #232323 !important;
+                padding: 20px;
+                margin-bottom: 10px;
+                width: 100%;
+                max-width: 100%;
+                border-radius: 10px;
+                border: 1px solid #c5e1a5;
+                direction: rtl;
+                text-align: right;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+        components.html("""
+        <style>
+        .scroll-btn {
+            position: fixed;
+            left: 10px;
+            padding: 12px;
+            font-size: 24px;
+            border-radius: 50%;
+            background-color: #c5e1a5;
+            color: black;
+            cursor: pointer;
+            z-index: 9999;
+            border: none;
+            box-shadow: 1px 1px 5px #888;
+        }
+        #scroll-top-btn { bottom: 80px; }
+        #scroll-bottom-btn { bottom: 20px; }
+        .rtl-metric {
+            direction: rtl;
+            text-align: right !important;
+            margin-right: 0 !important;
+        }
+        .rtl-metric .stMetric {
+            text-align: right !important;
+            direction: rtl;
+        }
+        .rtl-metric .stMetricDelta {
+            display: block !important;
+            text-align: right !important;
+            direction: rtl;
+        }
+        .rtl-download-btn {
+            direction: rtl;
+            text-align: right !important;
+            margin-right: 0 !important;
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: flex-start;
+        }
+        textarea, .stTextArea, .stTextArea textarea, input[type="text"], .stTextInput input, .stTextInput textarea {
+            direction: rtl !important;
+            text-align: right !important;
+            padding-right: 10px;
+            font-family: "Tahoma", "Arial", sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        .stButton, .stDownloadButton, .stMetric {
+            direction: rtl !important;
+            text-align: right !important;
+        }
+        </style>
+        <button class='scroll-btn' id='scroll-top-btn' onclick='window.scrollTo({top: 0, behavior: "smooth"});'>⬆️</button>
+        <button class='scroll-btn' id='scroll-bottom-btn' onclick='window.scrollTo({top: document.body.scrollHeight, behavior: "smooth"});'>⬇️</button>
+        """, height=1)
         if not os.path.exists(LAWS_DIR):
             st.error(f"⚠️ مجلد '{LAWS_DIR}/' غير موجود. يرجى التأكد من وجود ملفات القوانين.")
             return
@@ -370,9 +476,7 @@ def run_main_app():
                         txt = para.text.strip()
                         if not txt:
                             continue
-                        # Remove article number brackets in the main search
-                        txt = strip_article_brackets(txt)
-                        match = re.match(r"مادة\s*(\d+)", txt)
+                        match = re.match(r"مادة\s*[\(]?\s*(\d+)[\)]?", txt)
                         if match:
                             if current_article_paragraphs:
                                 full_text = "\n".join(current_article_paragraphs)
@@ -455,30 +559,16 @@ def run_main_app():
                     key="download_button_word_main",
                     use_container_width=False
                 )
-                # PDF export button
-                try:
-                    pdf_data = export_results_to_pdf(results)
-                    st.download_button(
-                        label="⬇️ تصدير النتائج إلى PDF",
-                        data=pdf_data,
-                        file_name="نتائج_البحث_القوانين_اليمنية.pdf",
-                        mime="application/pdf",
-                        key="download_button_pdf_main",
-                        use_container_width=False
-                    )
-                except Exception as e:
-                    st.warning("⚠️ تعذر إنشاء ملف PDF. تأكد من وجود مكتبة pdfkit وأداة wkhtmltopdf.")
                 st.markdown('</div>', unsafe_allow_html=True)
             else:
                 st.warning("لا توجد نتائج لتصديرها.")
             st.markdown("---")
             if results:
                 for i, r in enumerate(results):
-                    article_num = re.sub(r'[\(\)]', '', str(r['num']))
-                    with st.expander(f"📚 مادة {article_num} من قانون {r['law']}", expanded=True):
+                    with st.expander(f"📚 المادة ({r['num']}) من قانون {r['law']}", expanded=True):
                         st.markdown(f'''
                         <div class="result-box-night">
-                            <p style="font-size:17px;line-height:1.8;margin-top:0px;direction:rtl;text-align:right;">
+                            <p style="font-size:17px;line-height:1.8;margin-top:0px;">
                                 {r["text"]}
                             </p>
                         </div>
@@ -531,9 +621,9 @@ def run_main_app():
                                 100% {{ opacity: 1; transform: scale(1); }}
                             }}
                             </style>
-                            <button class="copy-material-btn" id="copy_btn_{i}_{r['law']}_{article_num}" onclick="
-                                navigator.clipboard.writeText(document.getElementById('plain_text_{i}_{r['law']}_{article_num}').innerText);
-                                var btn = document.getElementById('copy_btn_{i}_{r['law']}_{article_num}');
+                            <button class="copy-material-btn" id="copy_btn_{i}_{r['law']}_{r['num']}" onclick="
+                                navigator.clipboard.writeText(document.getElementById('plain_text_{i}_{r['law']}_{r['num']}').innerText);
+                                var btn = document.getElementById('copy_btn_{i}_{r['law']}_{r['num']}');
                                 btn.classList.add('copied');
                                 setTimeout(function(){{
                                     btn.classList.remove('copied');
@@ -553,7 +643,7 @@ def run_main_app():
                                     تم النسخ!
                                 </span>
                             </button>
-                            <div id="plain_text_{i}_{r['law']}_{article_num}" style="display:none;">{html.escape(r['plain'])}</div>
+                            <div id="plain_text_{i}_{r['law']}_{r['num']}" style="display:none;">{html.escape(r['plain'])}</div>
                         """, height=60)
             else:
                 st.info("لا توجد نتائج لعرضها حاليًا. يرجى إجراء بحث جديد.")
