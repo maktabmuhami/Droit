@@ -158,6 +158,48 @@ def set_paragraph_rtl(paragraph):
 
 def export_results_to_word(results, filename="نتائج_البحث.docx"):
     document = Document()
+    def export_results_to_pdf(results, filename="نتائج_البحث.pdf"):
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=30,
+        leftMargin=30,
+        topMargin=30,
+        bottomMargin=30
+    )
+
+    styles = getSampleStyleSheet()
+    rtl_style = ParagraphStyle(
+        'RTL',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=12,
+        leading=18,
+        alignment=TA_RIGHT,
+    )
+
+    elements = []
+
+    title = Paragraph("نتائج البحث في القوانين اليمنية", styles['Title'])
+    elements.append(title)
+    elements.append(Spacer(1, 12))
+
+    if not results:
+        elements.append(Paragraph("لم يتم العثور على نتائج للكلمات المفتاحية المحددة.", rtl_style))
+    else:
+        for i, r in enumerate(results, start=1):
+            header_text = f"القانون: {r['law']} - المادة: {r['num']}"
+            elements.append(Paragraph(header_text, styles['Heading2']))
+            elements.append(Spacer(1, 6))
+            text = r['plain'].replace("\n", "<br/>")
+            elements.append(Paragraph(text, rtl_style))
+            elements.append(Spacer(1, 20))
+
+    doc.build(elements)
+    pdf_value = buffer.getvalue()
+    buffer.close()
+    return pdf_value
     
     # Set normal style for the document
     style = document.styles['Normal']
