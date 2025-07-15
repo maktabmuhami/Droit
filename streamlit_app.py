@@ -378,7 +378,7 @@ def run_main_app():
         """, unsafe_allow_html=True)
         with st.form("main_search_form"):
             st.markdown('<div style="direction: rtl; text-align: right;">اختر قانونًا للبحث:</div>', unsafe_allow_html=True)
-            selected_file_form = st.radio("اختر قانونًا للبحث:", ["الكل"] + files, key="main_file_select")
+            selected_file_form = st.selectbox("", ["الكل"] + files, key="main_file_select", label_visibility="collapsed")
             st.markdown('<div style="direction: rtl; text-align: right;">📌 اكتب كلمة أو جملة للبحث عنها:</div>', unsafe_allow_html=True)
             st.markdown('<div dir="rtl">', unsafe_allow_html=True)
             keywords_form = st.text_area(
