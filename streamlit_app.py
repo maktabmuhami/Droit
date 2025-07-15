@@ -606,6 +606,15 @@ def run_main_app():
                     mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                     key="download_button_word_main",
                     use_container_width=False
+                    export_pdf_data = export_results_to_pdf(results)
+st.download_button(
+    label="⬇️ تصدير النتائج إلى PDF",
+    data=export_pdf_data,
+    file_name="نتائج_البحث_القوانين_اليمنية.pdf",
+    mime="application/pdf",
+    key="download_button_pdf_main",
+    use_container_width=False
+)
                 )
                 st.markdown('</div>', unsafe_allow_html=True)
             else:
