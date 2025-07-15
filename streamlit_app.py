@@ -1,6 +1,10 @@
 import streamlit as st
 import streamlit.components.v1 as components
 from docx import Document
+from docx.shared import Pt, Cm
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT, WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
 import re
 import uuid
 import os
@@ -136,17 +140,63 @@ def highlight_keywords(text, keywords, normalized_keywords=None, exact_match=Fal
     result.append(text[last_idx:])
     return "".join(result)
 
+def set_paragraph_rtl(paragraph):
+    """Force paragraph direction to RTL using docx XML."""
+    p = paragraph._p
+    pPr = p.get_or_add_pPr()
+    bidi = OxmlElement('w:bidi')
+    bidi.set(qn('w:val'), "1")
+    pPr.append(bidi)
+    # Also set alignment to right
+    paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+
 def export_results_to_word(results, filename="نتائج_البحث.docx"):
     document = Document()
-    document.add_heading('نتائج البحث في القوانين اليمنية', level=1)
+    
+    # Set normal style for the document
+    style = document.styles['Normal']
+    font = style.font
+    font.name = 'Arial'
+    font.size = Pt(16)
+    style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+
+    # Set margins: 2.54cm left/right, 2.54cm top/bottom (default), but you can change as needed
+    section = document.sections[0]
+    section.top_margin = Cm(2.54)
+    section.bottom_margin = Cm(2.54)
+    section.left_margin = Cm(2.54)
+    section.right_margin = Cm(2.54)
+
+    # Add heading
+    heading = document.add_heading('نتائج البحث في القوانين اليمنية', level=1)
+    heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    set_paragraph_rtl(heading)
+
     if not results:
-        document.add_paragraph("لم يتم العثور على نتائج للكلمات المفتاحية المحددة.")
+        p = document.add_paragraph("لم يتم العثور على نتائج للكلمات المفتاحية المحددة.")
+        set_paragraph_rtl(p)
     else:
         for i, r in enumerate(results):
-            document.add_heading(f"القانون: {r['law']} - المادة: {r['num']}", level=2)
-            document.add_paragraph(r['plain'])
+            # Add law/article heading
+            result_heading = document.add_heading(f"القانون: {r['law']} - المادة: {r['num']}", level=2)
+            result_heading.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            set_paragraph_rtl(result_heading)
+            # Add result text, justified, size 16, right-to-left
+            para = document.add_paragraph(r['plain'])
+            para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            set_paragraph_rtl(para)
+            # Set font for every run
+            for run in para.runs:
+                run.font.name = 'Arial'
+                run._element.rPr.rFonts.set(qn('w:eastAsia'), 'Arial')
+                run.font.size = Pt(16)
+            # Add 1cm spacing after each result except last
             if i < len(results) - 1:
-                document.add_page_break()
+                para.space_after = Pt(0)
+                # Add an empty paragraph with 1cm spacing
+                spacer = document.add_paragraph()
+                spacer.paragraph_format.space_after = Cm(1)
+                set_paragraph_rtl(spacer)
     buffer = BytesIO()
     document.save(buffer)
     buffer.seek(0)
